@@ -31,3 +31,14 @@ impl std::convert::From<CircleId> for i16 {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let circle_id = CircleId::from(1);
+        assert_eq!(circle_id.to_string(), "1");
+        assert_eq!(i16::from(circle_id), 1);
+    }
+}

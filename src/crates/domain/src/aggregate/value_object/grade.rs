@@ -30,3 +30,22 @@ impl std::convert::TryFrom<i16> for Grade {
         })    
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() -> anyhow::Result<()> {
+        for (v, n) in [
+            (Grade::First, 1),
+            (Grade::Second, 2),
+            (Grade::Third, 3),
+            (Grade::Fourth, 4),
+        ] {
+            assert_eq!(i16::from(v), n);
+            assert_eq!(Grade::try_from(n)?, v);
+        }
+        Ok(())
+    }
+}

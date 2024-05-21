@@ -35,4 +35,22 @@ impl std::convert::From<&str> for Major {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[test]
+    fn test() {
+        for (v, s) in [
+            (Major::ComputerScience, "ComputerScience"),
+            (Major::Economics, "Economics"),
+            (Major::Law, "Law"),
+            (Major::Art, "Art"),
+            (Major::Music, "Music"),
+            (Major::Other, "Other"),
+        ] {
+            assert_eq!(Major::from(s), v);
+            assert_eq!(String::from(v), s);
+        }
+    }
+}
