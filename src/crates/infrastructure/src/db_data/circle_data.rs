@@ -33,6 +33,26 @@ impl std::convert::TryFrom<CircleData> for Circle {
     type Error = anyhow::Error;
 
     fn try_from(data: CircleData) -> Result<Self, Self::Error> {
-        unimplemented!()
+        let circle_id = CircleId::from(data.id);
+        let owner_id = MemberId::from(data.owner_id);
+        let members = data
+            .members
+            .into_iter()
+            .map(|member_data| MemberData::try_into(member_data))
+            .collect::<Result<Vec<Member>, _>>()?;
+
+        let owner = members
+            .iter()
+            .find(|member| member.id == owner_id)
+            .ok_or_else(|| anyhow::Error::msg("Owner not found"))?
+            .clone();
+
+        Ok(Circle {
+            id: circle_id,
+            name: data.name,
+            capacity: data.capacity,
+            owner,
+            members,
+        })
     }
 }

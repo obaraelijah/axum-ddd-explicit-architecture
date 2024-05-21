@@ -10,6 +10,7 @@ mod handler;
 struct AppState {
     pool: sqlx::MySqlPool,
 }
+
 fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(handle_get_version))
