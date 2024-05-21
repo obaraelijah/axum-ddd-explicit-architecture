@@ -1,8 +1,10 @@
 use axum::{routing::get, Router};
 
 use crate::config::connect::connect;
+use handler::{handle_debug, handle_get_version};
 
 mod config;
+mod handler;
 
 #[derive(Clone)]
 struct AppState {
@@ -11,10 +13,13 @@ struct AppState {
 fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(handle_get_version))
+        .route("/debug", get(handle_debug))
 }
 
 #[tokio::main]
 async fn main() -> Result<(), ()>{
+    tracing_subscriber::fmt().init();
+
     let pool = connect().await.expect("database should connect");
 
     let state = AppState {
@@ -29,11 +34,6 @@ async fn main() -> Result<(), ()>{
     println!("Listening on: {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
     Ok(())
-}
-
-
-async fn handle_get_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
 }
 
 #[cfg(test)]
