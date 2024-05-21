@@ -7,3 +7,11 @@ edition = "2021"
 axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
+dotenv = "0.15.0"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = [
+    "std",
+    "env-filter",
+    "fmt",
+] }
+sqlx = { version = "0.7.3", features = ["mysql", "runtime-tokio-native-tls"] }
