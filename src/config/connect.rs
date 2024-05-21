@@ -41,3 +41,14 @@ pub async fn connect() -> Result<sqlx::MySqlPool, sqlx::Error> {
         .await?;
     Ok(pool)
 }
+
+#[cfg(test)]
+pub async fn connect_test() -> Result<sqlx::MySqlPool, sqlx::Error> {
+    // TODO: build a db connection for testing
+    let config = DbConfig::from_env();
+    let pool = MySqlPoolOptions::new()
+        .max_connections(5)
+        .connect(&config.connection())
+        .await?;
+    Ok(pool)
+}
