@@ -44,6 +44,9 @@ mod tests {
     use axum::http::StatusCode;
     use tower::ServiceExt;
 
+    // FIXME: ignore test because it requires a running database
+    #[tokio::test]
+    #[ignore]
     async fn test_version() -> anyhow::Result<()> {
         let pool = connect_test().await.expect("database should connect");
         let state = AppState {
