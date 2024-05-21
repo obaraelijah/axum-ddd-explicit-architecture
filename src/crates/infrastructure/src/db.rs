@@ -31,4 +31,36 @@ impl Db {
             None => Ok(None),
         }
     }
+
+    pub fn keys(&self) -> Vec<String> {
+        let db = self.db.read().expect("read data from db");
+        db.keys().cloned().collect()
+    }
+
+    pub fn remove<K>(&self, key: K) -> anyhow::Result<()>
+    where
+        K: AsRef<str>,
+    {
+        let mut db = self
+            .db
+            .write()
+            .map_err(|e| anyhow::anyhow!("Error writing to database: {:?}", e))?;
+        db.remove(key.as_ref())
+            .ok_or_else(|| anyhow::anyhow!("Key not found in database"))?;
+        Ok(())
+    }
+
+    pub fn set<S, K>(&self, key: K, value: &S) -> anyhow::Result<()>
+    where
+        K: Into<String>,
+        S: serde::ser::Serialize,
+    {
+        let value = serde_json::to_string(value)?;
+        let mut db = self
+            .db
+            .write()
+            .map_err(|e| anyhow::anyhow!("Error writing to database: {:?}", e))?;
+        db.insert(key.into(), value);
+        Ok(())
+    }
 }
