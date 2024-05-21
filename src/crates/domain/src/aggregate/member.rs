@@ -6,17 +6,17 @@ pub struct Member {
     pub name: String,
     pub age: i16,
     pub grade: Grade,
-    pub major: Major
+    pub major: Major,
 }
 
 impl Member {
     pub fn new(name: String, age: i16, grade: Grade, major: Major) -> Self {
-        Member { 
+        Member {
             id: MemberId::gen(),
-            name, 
+            name,
             age,
             grade,
-            major, 
+            major,
         }
     }
 
@@ -29,7 +29,6 @@ impl Member {
             major,
         }
     }
-
 
     pub fn is_adult(&self) -> bool {
         self.age > 20

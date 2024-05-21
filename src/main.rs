@@ -17,14 +17,12 @@ fn router() -> Router<AppState> {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), ()>{
+async fn main() -> Result<(), ()> {
     tracing_subscriber::fmt().init();
 
     let pool = connect().await.expect("database should connect");
 
-    let state = AppState {
-        pool,
-    };
+    let state = AppState { pool };
 
     let app = router().with_state(state);
 
@@ -49,9 +47,7 @@ mod tests {
     #[ignore]
     async fn test_version() -> anyhow::Result<()> {
         let pool = connect_test().await.expect("database should connect");
-        let state = AppState {
-            pool,
-        };
+        let state = AppState { pool };
         let app = router().with_state(state);
         let response = app
             .oneshot(

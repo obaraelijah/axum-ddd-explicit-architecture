@@ -2,7 +2,7 @@ use anyhow::Error;
 
 use super::{
     member::Member,
-    value_object::{circle_id::CircleId, grade::Grade}
+    value_object::{circle_id::CircleId, grade::Grade},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -16,7 +16,6 @@ pub struct Circle {
 
 impl Circle {
     pub fn new(name: String, owner: Member, capacity: i16) -> Result<Self, Error> {
-        
         Ok(Circle {
             id: CircleId::gen(),
             name,
@@ -87,5 +86,4 @@ impl Circle {
     pub fn graduate(&mut self) {
         self.members.retain(|m| m.grade != Grade::Fourth);
     }
-
 }

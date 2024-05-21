@@ -11,7 +11,7 @@ pub trait CircleRepositoryInterface {
     fn create(
         &self,
         circle: &Circle,
-    ) ->  impl std::future::Future<Output = Result<(), Error>> + Send;
+    ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
 
     fn update(
         &self,

@@ -27,7 +27,7 @@ impl std::convert::TryFrom<i16> for Grade {
             3 => Grade::Third,
             4 => Grade::Fourth,
             _ => anyhow::bail!("error"),
-        })    
+        })
     }
 }
 
