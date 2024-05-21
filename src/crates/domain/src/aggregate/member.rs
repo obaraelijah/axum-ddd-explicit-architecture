@@ -19,4 +19,19 @@ impl Member {
             major, 
         }
     }
+
+    pub fn reconstruct(id: MemberId, name: String, age: i16, grade: Grade, major: Major) -> Self {
+        Member {
+            id,
+            name,
+            age,
+            grade,
+            major,
+        }
+    }
+
+
+    pub fn is_adult(&self) -> bool {
+        self.age > 20
+    }
 }
