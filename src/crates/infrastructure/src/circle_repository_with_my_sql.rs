@@ -183,4 +183,29 @@ impl CircleRepositoryInterface for CircleRepositoryWithMySql {
     
         Ok(circle.clone())
     }    
+
+    async fn delete(&self, circle: &Circle) -> Result<(), anyhow::Error> {
+        let circle_data = CircleData::try_from(circle.clone())?;
+    
+        // Delete members associated with the circle
+        let delete_members_query = sqlx::query("DELETE FROM members WHERE circle_id = ?")
+            .bind(circle_data.id);
+    
+        delete_members_query.execute(&self.db).await.map_err(|e| {
+            eprintln!("Failed to delete members: {:?}", e);
+            anyhow::Error::msg("Failed to delete members")
+        })?;
+    
+        // Delete the circle
+        let delete_circle_query = sqlx::query("DELETE FROM circles WHERE id = ?")
+            .bind(circle_data.id);
+    
+        delete_circle_query.execute(&self.db).await.map_err(|e| {
+            eprintln!("Failed to delete circle: {:?}", e);
+            anyhow::Error::msg("Failed to delete circle")
+        })?;
+    
+        Ok(())
+    }
+    
 }
