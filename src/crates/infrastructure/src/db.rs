@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::{Arc, RwLock}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 #[derive(Clone, Debug)]
 pub struct Db {
@@ -7,8 +10,8 @@ pub struct Db {
 
 impl Db {
     pub fn new() -> Self {
-        Self { 
-            db: Arc::new(RwLock::new(HashMap::new())), 
+        Self {
+            db: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 

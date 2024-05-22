@@ -1,19 +1,26 @@
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 use crate::config::connect::connect;
-use handler::{handle_debug, handle_get_version};
+use handler::{handle_create_circle, handle_debug, handle_get_version};
+
+use infrastructure::circle_repository_with_my_sql::CircleRepositoryWithMySql;
 
 mod config;
 mod handler;
 
 #[derive(Clone)]
 struct AppState {
+    circle_repository: CircleRepositoryWithMySql,
     pool: sqlx::MySqlPool,
 }
 
 fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(handle_get_version))
+        .route("/circle", post(handle_create_circle))
         .route("/debug", get(handle_debug))
 }
 
@@ -23,7 +30,10 @@ async fn main() -> Result<(), ()> {
 
     let pool = connect().await.expect("database should connect");
 
-    let state = AppState { pool };
+    let state = AppState {
+        circle_repository: CircleRepositoryWithMySql::new(pool.clone()),
+        pool,
+    };
 
     let app = router().with_state(state);
 
@@ -48,7 +58,10 @@ mod tests {
     #[ignore]
     async fn test_version() -> anyhow::Result<()> {
         let pool = connect_test().await.expect("database should connect");
-        let state = AppState { pool };
+        let state = AppState {
+            circle_repository: CircleRepositoryWithMySql::new(pool.clone()),
+            pool,
+        };
         let app = router().with_state(state);
         let response = app
             .oneshot(
