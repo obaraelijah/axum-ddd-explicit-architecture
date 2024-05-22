@@ -7,7 +7,7 @@ use axum::{
     routing::{get, post, put},
     Router,
 };
-use handler::{handle_debug, handle_get_version};
+use handler::{handle_debug, handle_get_test, handle_get_version};
 use infrastructure::circle_repository_with_my_sql::CircleRepositoryWithMySql;
 
 mod config;
@@ -25,6 +25,7 @@ fn router() -> Router<AppState> {
         .route("/circle:id", get(handle_fetch_circle))
         .route("/circle/:id", put(handle_update_circle))
         .route("/circle", post(handle_create_circle))
+        .route("/test", get(handle_get_test))
         .route("/debug", get(handle_debug))
 }
 

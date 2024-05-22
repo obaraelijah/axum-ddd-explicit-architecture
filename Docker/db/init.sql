@@ -28,7 +28,6 @@ VALUES
     ('Circle B', 8, 2),
     ('Circle C', 10, 3);
 
-
 INSERT INTO
     members (name, grade, circle_id, age, major)
 VALUES
