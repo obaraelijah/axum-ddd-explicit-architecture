@@ -131,6 +131,51 @@ pub async fn handle_fetch_circle(
         .map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateCircleInputParam {
+    id: i16,
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct UpdateCircleRequestBody {
+    pub circle_name: Option<String>,
+    pub capacity: Option<i16>,
+}
+
+impl UpdateCircleRequestBody {
+    pub fn convert_to_input(self, id: i16) -> UpdateCircleInput {
+        UpdateCircleInput::new(id, self.circle_name, self.capacity)
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct UpdateCircleResponseBody {
+    pub id: i16,
+}
+
+impl std::convert::From<UpdateCircleOutPut> for UpdateCircleResponseBody {
+    fn from(UpdateCircleOutPut { id }: UpdateCircleOutPut) -> Self {
+        UpdateCircleResponseBody { id }
+    }
+}
+
+pub async fn handle_update_circle(
+    State(state): State<AppState>,
+    Path(path): Path<UpdateCircleInputParam>,
+    Json(body): Json<UpdateCircleRequestBody>,
+) -> Result<Json<UpdateCircleResponseBody>, String> {
+    let update_circle_input = body.convert_to_input(path.id);
+    let mut usecase = UpdateCircleUsecase::new(state.circle_repository);
+
+    usecase
+        .execute(update_circle_input)
+        .await
+        .map(UpdateCircleResponseBody::from)
+        .map(Json)
+        .map_err(|e| e.to_string())
+}
+
+
 #[tracing::instrument(name = "handle_debug", skip())]
 pub async fn handle_debug() -> impl IntoResponse {
     tracing::info!("info");

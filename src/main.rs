@@ -1,11 +1,13 @@
-use axum::{
-    routing::{get, post},
-    Router,
+use crate::{
+    config::connect::connect,
+    handler::{handle_create_circle, handle_fetch_circle, handle_update_circle},
 };
 
-use crate::config::connect::connect;
-use handler::{handle_create_circle, handle_debug, handle_fetch_circle, handle_get_version};
-
+use axum::{
+    routing::{get, post, put},
+    Router,
+};
+use handler::{handle_debug, handle_get_version};
 use infrastructure::circle_repository_with_my_sql::CircleRepositoryWithMySql;
 
 mod config;
@@ -21,6 +23,7 @@ fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(handle_get_version))
         .route("/circle:id", get(handle_fetch_circle))
+        .route("/circle/:id", put(handle_update_circle))
         .route("/circle", post(handle_create_circle))
         .route("/debug", get(handle_debug))
 }
@@ -54,7 +57,7 @@ mod tests {
     use axum::http::StatusCode;
     use tower::ServiceExt;
 
-    // FIXME: ignore test because it requires a running database
+    // TODO: ignore test because it requires a running database
     #[tokio::test]
     #[ignore]
     async fn test_version() -> anyhow::Result<()> {
