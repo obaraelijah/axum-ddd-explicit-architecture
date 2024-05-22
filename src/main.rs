@@ -4,7 +4,7 @@ use axum::{
 };
 
 use crate::config::connect::connect;
-use handler::{handle_create_circle, handle_debug, handle_get_version};
+use handler::{handle_create_circle, handle_debug, handle_fetch_circle, handle_get_version};
 
 use infrastructure::circle_repository_with_my_sql::CircleRepositoryWithMySql;
 
@@ -20,6 +20,7 @@ struct AppState {
 fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(handle_get_version))
+        .route("/circle:id", get(handle_fetch_circle))
         .route("/circle", post(handle_create_circle))
         .route("/debug", get(handle_debug))
 }
