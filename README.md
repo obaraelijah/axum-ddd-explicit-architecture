@@ -1,16 +1,16 @@
-# Management  Circle App for University
+## Management  Circle App for University
 
-## Technology Stack
+### Technology Stack
 
 - Rust
 - axum
 - tokio
 - Docker
 
-## Design Pattern Utilized
+### Design Pattern Utilized
 - Domain Driven Design
 
-## How to run the App
+### How to run the App
 
 You need to run the devcontainer first.
 
