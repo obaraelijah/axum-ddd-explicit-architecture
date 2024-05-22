@@ -3,7 +3,7 @@
 ### Setup
 
 ```bash
-cp .env.dist .env
+cp .env.example .env
 ```
 ### up
 
