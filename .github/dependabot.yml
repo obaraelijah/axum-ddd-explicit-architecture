@@ -1,0 +1,12 @@
+location: "Nairobi, Kenya"
+package-ecosystem:
+  - name: "cargo"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      timezone: "Africa/Nairobi"
+  - name: "docker"
+    directory: "/.devcontainer"
+    schedule:
+      interval: "daily"
+      timezone: "Africa/Nairobi"
