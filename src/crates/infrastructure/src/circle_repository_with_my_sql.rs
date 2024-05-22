@@ -121,5 +121,66 @@ impl CircleRepositoryInterface for CircleRepositoryWithMySql {
         }
     
         Ok(())
+    }
+
+    async fn update(&self, circle: &Circle) -> Result<Circle, anyhow::Error> {
+        let circle_data = CircleData::try_from(circle.clone())?;
+        
+        // Update circle information
+        let circle_query = sqlx::query(
+            "UPDATE circles SET name = ?, owner_id = ?, capacity = ? WHERE id = ?"
+        )
+        .bind(circle_data.name)
+        .bind(circle_data.owner_id)
+        .bind(circle_data.capacity)
+        .bind(circle_data.id);
+    
+        circle_query.execute(&self.db).await.map_err(|e| {
+            eprintln!("Failed to update circle: {:?}", e);
+            anyhow::Error::msg("Failed to update circle")
+        })?;
+    
+        // Delete existing members
+        let delete_members_query = sqlx::query("DELETE FROM members WHERE circle_id = ?")
+            .bind(circle_data.id);
+    
+        delete_members_query.execute(&self.db).await.map_err(|e| {
+            eprintln!("Failed to delete members: {:?}", e);
+            anyhow::Error::msg("Failed to delete members")
+        })?;
+    
+        // Reinsert owner
+        let owner_query = sqlx::query(
+            "INSERT INTO members (name, age, grade, major, circle_id) VALUES (?, ?, ?, ?, ?)"
+        )
+        .bind(circle_data.owner.name)
+        .bind(circle_data.owner.age)
+        .bind(circle_data.owner.grade)
+        .bind(circle_data.owner.major)
+        .bind(circle_data.id);
+    
+        owner_query.execute(&self.db).await.map_err(|e| {
+            eprintln!("Failed to insert owner: {:?}", e);
+            anyhow::Error::msg("Failed to insert owner")
+        })?;
+    
+        // Reinsert members
+        for member in circle_data.members {
+            let member_query = sqlx::query(
+                "INSERT INTO members (name, age, grade, major, circle_id) VALUES (?, ?, ?, ?, ?)"
+            )
+            .bind(member.name)
+            .bind(member.age)
+            .bind(member.grade)
+            .bind(member.major)
+            .bind(circle_data.id);
+    
+            member_query.execute(&self.db).await.map_err(|e| {
+                eprintln!("Failed to insert member: {:?}", e);
+                anyhow::Error::msg("Failed to insert member")
+            })?;
+        }
+    
+        Ok(circle.clone())
     }    
 }
