@@ -1,33 +1,48 @@
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::str::FromStr;
+
+use rand::distributions::{Alphanumeric, DistString};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CircleId(i16);
+pub struct CircleId(String);
 
 impl CircleId {
     pub fn gen() -> Self {
-        Self(rand::random::<i16>())
+        let mut rng = rand::thread_rng();
+        Self(Alphanumeric.sample_string(&mut rng, 36))
     }
 }
 
-impl std::fmt::Display for CircleId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Hash for CircleId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl fmt::Display for CircleId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl std::hash::Hash for CircleId {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+impl FromStr for CircleId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.to_string()))
     }
 }
 
-impl std::convert::From<i16> for CircleId {
+impl From<i16> for CircleId {
     fn from(id: i16) -> Self {
-        Self(id)
+        Self(id.to_string())
     }
 }
 
-impl std::convert::From<CircleId> for i16 {
+impl From<CircleId> for String {
     fn from(circle_id: CircleId) -> Self {
-        circle_id.0 as i16
+        circle_id.0
     }
 }
 
@@ -36,9 +51,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
-        let circle_id = CircleId::from(1);
-        assert_eq!(circle_id.to_string(), "1");
-        assert_eq!(i16::from(circle_id), 1);
+    fn test() -> anyhow::Result<()> {
+        let circle_id = CircleId::gen();
+        assert_eq!(circle_id.to_string().len(), 36);
+
+        let str = "0123456789abcdef0123456789abcdef";
+        let circle_id = CircleId::from_str(str)?;
+        assert_eq!(circle_id.to_string(), str);
+        Ok(())
     }
 }

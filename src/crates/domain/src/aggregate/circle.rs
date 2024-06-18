@@ -1,13 +1,12 @@
-use anyhow::Error;
-
 use super::{
     member::Member,
     value_object::{circle_id::CircleId, grade::Grade},
 };
+use anyhow::Error;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Circle {
-    pub id: CircleId, // (value Object)
+    pub id: CircleId,
     pub name: String,
     pub capacity: i16,
     pub owner: Member,
@@ -16,6 +15,14 @@ pub struct Circle {
 
 impl Circle {
     pub fn new(name: String, owner: Member, capacity: i16) -> Result<Self, Error> {
+        if owner.grade != Grade::Third {
+            return Err(Error::msg("Owner must be 3rd grade"));
+        }
+
+        if capacity < 3 {
+            return Err(Error::msg("Circle capacity must be 3 or more"));
+        }
+
         Ok(Circle {
             id: CircleId::gen(),
             name,
@@ -54,11 +61,11 @@ impl Circle {
         self.members.len() + 1 >= self.capacity as usize
     }
 
-    fn is_runnable(&self) -> bool {
+    fn _is_runnable(&self) -> bool {
         self.members.len() + 1 >= 3
     }
 
-    fn is_drinkable_alcohol(member: &Member) -> bool {
+    fn _is_drinkable_alcohol(member: &Member) -> bool {
         member.is_adult()
     }
 

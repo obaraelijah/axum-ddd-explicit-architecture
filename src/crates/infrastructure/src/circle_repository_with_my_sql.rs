@@ -1,202 +1,185 @@
-use super::db_data::{circle_data::CircleData, member_data::MemberData};
+use std::str::FromStr;
+
+use anyhow::Error;
 use domain::{
-    aggregate::{circle::Circle, value_object::circle_id::CircleId},
+    aggregate::{
+        circle::Circle,
+        member::Member,
+        value_object::{circle_id::CircleId, grade::Grade, major::Major, member_id::MemberId},
+    },
     interface::circle_repository_interface::CircleRepositoryInterface,
 };
-use sqlx::Row;
+
+use super::db::Db;
 
 #[derive(Clone, Debug)]
-pub struct CircleRepositoryWithMySql {
-    db: sqlx::MySqlPool,
+pub struct CircleRepository {
+    db: Db,
 }
 
-impl CircleRepositoryWithMySql {
-    pub fn new(db: sqlx::MySqlPool) -> Self {
-        Self { db }
+impl CircleRepository {
+    pub fn new() -> Self {
+        Self { db: Db::new() }
     }
 }
 
-impl CircleRepositoryInterface for CircleRepositoryWithMySql {
-    async fn find_by_id(&self, circle_id: &CircleId) -> Result<Circle, anyhow::Error> {
-        tracing::info!("find_circle_by_id : {:?}", circle_id);
-        let circle_query =
-            sqlx::query("SELECT * FROM circles WHERE id = ?").bind(circle_id.to_string());
-
-        let circle_row = circle_query.fetch_one(&self.db).await.map_err(|e| {
-            eprintln!("Failed to fetch circle by id: {:?}", e);
-            anyhow::Error::msg("Failed to fetch circle by id")
-        })?;
-
-        let member_query =
-            sqlx::query("SELECT * FROM members WHERE circle_id = ?").bind(circle_id.to_string());
-
-        let members_row = member_query.fetch_all(&self.db).await.map_err(|e| {
-            eprintln!("Failed to fetch members by circle id: {:?}", e);
-            anyhow::Error::msg("Failed to fetch members by circle id")
-        })?;
-
-        let members: Vec<MemberData> = members_row
-            .into_iter()
-            .map(|member| MemberData {
-                id: member.get::<i16, _>("id"),
-                name: member.get::<String, _>("name"),
-                age: member.get::<i16, _>("age"),
-                grade: member.get::<i16, _>("grade"),
-                major: member.get::<String, _>("major"),
-            })
-            .collect();
-
-        let owner: MemberData = members
-            .iter()
-            .find(|member| member.id == circle_row.get::<i16, _>("owner_id"))
-            .ok_or_else(|| anyhow::Error::msg("Owner not found"))?
-            .clone();
-
-        let circle_data = CircleData {
-            id: circle_row.get::<i16, _>("id"),
-            name: circle_row.get::<String, _>("name"),
-            owner_id: circle_row.get::<i16, _>("owner_id"),
-            owner,
-            capacity: circle_row.get::<i16, _>("capacity"),
-            members,
-        };
-
-        Ok(Circle::try_from(circle_data)?)
+impl CircleRepositoryInterface for CircleRepository {
+    async fn find_all(&self) -> Result<Vec<Circle>, Error> {
+        todo!("Implement this method")
     }
 
-    async fn create(&self, circle: &Circle) -> Result<(), anyhow::Error> {
-        let circle_data = CircleData::try_from(circle.clone())?;
-
-        let circle_query =
-            sqlx::query("INSERT INTO circles (name, owner_id, capacity) VALUES (?, ?, ?)")
-                .bind(circle_data.name)
-                .bind(circle_data.owner_id)
-                .bind(circle_data.capacity);
-
-        let circle_query_result = circle_query.execute(&self.db).await.map_err(|e| {
-            eprintln!("Failed to insert circle: {:?}", e);
-            anyhow::Error::msg("Failed to insert circle")
-        })?;
-
-        let circle_id = circle_query_result.last_insert_id();
-
-        let owner_query = sqlx::query(
-            "INSERT INTO members (name, age, grade, major, circle_id) VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(circle_data.owner.name)
-        .bind(circle_data.owner.age)
-        .bind(circle_data.owner.grade)
-        .bind(circle_data.owner.major)
-        .bind(circle_id);
-
-        owner_query.execute(&self.db).await.map_err(|e| {
-            eprintln!("Failed to insert owner: {:?}", e);
-            anyhow::Error::msg("Failed to insert owner")
-        })?;
-
-        for member in circle_data.members {
-            let member_query = sqlx::query(
-                "INSERT INTO members (name, age, grade, major, circle_id) VALUES (?, ?, ?, ?, ?)",
-            )
-            .bind(member.name)
-            .bind(member.age)
-            .bind(member.grade)
-            .bind(member.major)
-            .bind(circle_id);
-
-            member_query.execute(&self.db).await.map_err(|e| {
-                eprintln!("Failed to insert member: {:?}", e);
-                anyhow::Error::msg("Failed to insert member")
-            })?;
+    async fn find_by_id(&self, circle_id: &CircleId) -> Result<Circle, Error> {
+        match self.db.get::<CircleData, _>(&circle_id.to_string())? {
+            Some(data) => Ok(Circle::try_from(data)?),
+            None => Err(Error::msg("Circle not found")),
         }
-
-        Ok(())
     }
 
-    async fn update(&self, circle: &Circle) -> Result<Circle, anyhow::Error> {
-        let circle_data = CircleData::try_from(circle.clone())?;
-
-        // Update circle information
-        let circle_query =
-            sqlx::query("UPDATE circles SET name = ?, owner_id = ?, capacity = ? WHERE id = ?")
-                .bind(circle_data.name)
-                .bind(circle_data.owner_id)
-                .bind(circle_data.capacity)
-                .bind(circle_data.id);
-
-        circle_query.execute(&self.db).await.map_err(|e| {
-            eprintln!("Failed to update circle: {:?}", e);
-            anyhow::Error::msg("Failed to update circle")
-        })?;
-
-        // Delete existing members
-        let delete_members_query =
-            sqlx::query("DELETE FROM members WHERE circle_id = ?").bind(circle_data.id);
-
-        delete_members_query.execute(&self.db).await.map_err(|e| {
-            eprintln!("Failed to delete members: {:?}", e);
-            anyhow::Error::msg("Failed to delete members")
-        })?;
-
-        // Reinsert owner
-        let owner_query = sqlx::query(
-            "INSERT INTO members (name, age, grade, major, circle_id) VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(circle_data.owner.name)
-        .bind(circle_data.owner.age)
-        .bind(circle_data.owner.grade)
-        .bind(circle_data.owner.major)
-        .bind(circle_data.id);
-
-        owner_query.execute(&self.db).await.map_err(|e| {
-            eprintln!("Failed to insert owner: {:?}", e);
-            anyhow::Error::msg("Failed to insert owner")
-        })?;
-
-        // Reinsert members
-        for member in circle_data.members {
-            let member_query = sqlx::query(
-                "INSERT INTO members (name, age, grade, major, circle_id) VALUES (?, ?, ?, ?, ?)",
-            )
-            .bind(member.name)
-            .bind(member.age)
-            .bind(member.grade)
-            .bind(member.major)
-            .bind(circle_data.id);
-
-            member_query.execute(&self.db).await.map_err(|e| {
-                eprintln!("Failed to insert member: {:?}", e);
-                anyhow::Error::msg("Failed to insert member")
-            })?;
+    async fn create(&self, circle: &Circle) -> Result<(), Error> {
+        match self.db.get::<CircleData, _>(&circle.id.to_string())? {
+            Some(_) => Err(Error::msg("Circle already exists")),
+            None => {
+                self.db
+                    .set(circle.id.to_string(), &CircleData::from(circle.clone()))?;
+                Ok(())
+            }
         }
-
-        Ok(circle.clone())
     }
 
-    async fn delete(&self, circle: &Circle) -> Result<(), anyhow::Error> {
-        let circle_data = CircleData::try_from(circle.clone())?;
+    async fn update(&self, circle: &Circle) -> Result<Circle, Error> {
+        match self.db.get::<CircleData, _>(&circle.id.to_string())? {
+            Some(_) => self
+                .db
+                .set(circle.id.to_string(), &CircleData::from(circle.clone()))
+                .and_then(|_| self.db.get::<CircleData, _>(&circle.id.to_string()))
+                .map(|data| match data {
+                    Some(data) => Circle::try_from(data),
+                    None => Err(Error::msg("Failed to convert circle data")),
+                })?,
+            None => Err(Error::msg("Circle not found")),
+        }
+    }
 
-        // Delete members associated with the circle
-        let delete_members_query =
-            sqlx::query("DELETE FROM members WHERE circle_id = ?").bind(circle_data.id);
+    async fn delete(&self, circle: &Circle) -> Result<(), Error> {
+        match self.db.get::<CircleData, _>(&circle.id.to_string())? {
+            Some(_) => self.db.remove(circle.id.to_string()),
+            None => Err(Error::msg("Circle not found")),
+        }
+    }
+}
 
-        delete_members_query.execute(&self.db).await.map_err(|e| {
-            eprintln!("Failed to delete members: {:?}", e);
-            anyhow::Error::msg("Failed to delete members")
-        })?;
+#[derive(serde::Deserialize, serde::Serialize)]
+struct CircleData {
+    id: String,
+    name: String,
+    owner: MemberData,
+    capacity: i16,
+    members: Vec<MemberData>,
+}
 
-        // Delete the circle
-        let delete_circle_query =
-            sqlx::query("DELETE FROM circles WHERE id = ?").bind(circle_data.id);
+impl std::convert::From<Circle> for CircleData {
+    fn from(circle: Circle) -> Self {
+        CircleData {
+            id: circle.id.into(),
+            name: circle.name,
+            owner: MemberData::from(circle.owner),
+            capacity: circle.capacity,
+            members: circle.members.into_iter().map(MemberData::from).collect(),
+        }
+    }
+}
 
-        delete_circle_query.execute(&self.db).await.map_err(|e| {
-            eprintln!("Failed to delete circle: {:?}", e);
-            anyhow::Error::msg("Failed to delete circle")
-        })?;
+impl std::convert::TryFrom<CircleData> for Circle {
+    type Error = Error;
 
-        Ok(())
+    fn try_from(data: CircleData) -> Result<Self, Self::Error> {
+        Ok(Circle::reconstruct(
+            CircleId::from_str(&data.id)?,
+            data.name,
+            Member::reconstruct(
+                MemberId::from_str(&data.owner.id)?,
+                data.owner.name,
+                data.owner.age,
+                Grade::try_from(data.owner.grade)?,
+                Major::from(data.owner.major.as_str()),
+            ),
+            data.capacity,
+            data.members
+                .into_iter()
+                .map(Member::try_from)
+                .collect::<Result<Vec<Member>, Error>>()?,
+        ))
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+struct MemberData {
+    id: String,
+    name: String,
+    age: i16,
+    grade: i16,
+    major: String,
+}
+
+impl std::convert::From<Member> for MemberData {
+    fn from(value: Member) -> Self {
+        Self {
+            id: value.id.into(),
+            name: value.name,
+            age: value.age,
+            grade: value.grade.into(),
+            major: value.major.into(),
+        }
+    }
+}
+
+impl std::convert::TryFrom<MemberData> for Member {
+    type Error = Error;
+
+    fn try_from(value: MemberData) -> Result<Self, Self::Error> {
+        Ok(Member::reconstruct(
+            MemberId::from_str(value.id.as_str())?,
+            value.name,
+            value.age,
+            Grade::try_from(value.grade)?,
+            Major::from(value.major.as_str()),
+        ))
     }
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use domain::{
+        aggregate::{
+            circle::Circle,
+            member::Member,
+            value_object::{grade::Grade, major::Major},
+        },
+        interface::circle_repository_interface::CircleRepositoryInterface,
+    };
+
+    use super::CircleRepository;
+
+    #[tokio::test]
+    async fn test() -> anyhow::Result<()> {
+        let mut circle1 = build_circle()?;
+        let repository = CircleRepository::new();
+        assert!(repository.find_by_id(&circle1.id).await.is_err());
+        repository.create(&circle1).await?;
+        assert_eq!(repository.find_by_id(&circle1.id).await?, circle1);
+        circle1.name = "circle_name2".to_string();
+        repository.update(&circle1).await?;
+        assert_eq!(repository.find_by_id(&circle1.id).await?, circle1);
+        repository.delete(&circle1).await?;
+        assert!(repository.find_by_id(&circle1.id).await.is_err());
+        Ok(())
+    }
+
+    fn build_circle() -> anyhow::Result<Circle> {
+        Circle::new(
+            "Music club".to_string(),
+            Member::new("member_name1".to_string(), 21, Grade::Third, Major::Art),
+            3,
+        )
+    }
+}
